@@ -63,21 +63,7 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
             archiveArtifacts artifacts: 'target/**/scapegoat-report/scapegoat.html', allowEmptyArchive: true
           }
         }
-        stageWithCommitStatus("2. Test") {
-          try {
-              timeout(time: 20, unit: 'MINUTES') {
-                withEnv(['RUN_DOCKER_INTEGRATION_TESTS=true', 'RUN_MESOS_INTEGRATION_TESTS=true']) {
-                   sh "sudo -E sbt -Dsbt.log.format=false coverage test coverageReport"
-                }
-              }
-          } finally {
-            junit allowEmptyResults: true, testResults: 'target/test-reports/**/*.xml'
-            archiveArtifacts(
-                artifacts: 'target/**/coverage-report/cobertura.xml, target/**/scoverage-report/**',
-                allowEmptyArchive: true)
-          }
-        }
-        stageWithCommitStatus("3. Test Integration") {
+        stageWithCommitStatus("Test Integration") {
           try {
               timeout(time: 20, unit: 'MINUTES') {
                 withEnv(['RUN_DOCKER_INTEGRATION_TESTS=true', 'RUN_MESOS_INTEGRATION_TESTS=true']) {
@@ -98,73 +84,6 @@ node('JenkinsMarathonCI-Debian8-1-2017-02-23') { try {
                 allowEmptyArchive: true)
           }
         }
-        stage("4. Assemble Runnable Binaries") {
-          sh "sudo -E sbt assembly"
-          sh "sudo bin/build-distribution"
-        }
-        stage("5. Package Binaries") {
-          parallel (
-            "Tar Binaries": {
-              sh """sudo tar -czv -f "target/marathon-${gitCommit}.tgz" \
-                      Dockerfile \
-                      README.md \
-                      LICENSE \
-                      bin \
-                      examples \
-                      docs \
-                      target/scala-2.*/marathon-assembly-*.jar
-                 """
-            },
-            "Create Debian and Red Hat Package": {
-              sh "sudo rm -rf marathon-pkg && git clone https://github.com/mesosphere/marathon-pkg.git marathon-pkg"
-              dir("marathon-pkg") {
-                 // marathon-pkg has marathon as a git module. We've already
-                 // checked it out. So let's just symlink.
-                 sh "sudo rm -rf marathon && ln -s ../ marathon"
-                 sh "sudo make all"
-              }
-            },
-            "Build Docker Image": {
-              // target is in .dockerignore so we just copy the jar before.
-              sh "cp target/*/marathon-assembly-*.jar ."
-              mesosVersion = sh(returnStdout: true, script: "sed -n 's/^.*MesosDebian = \"\\(.*\\)\"/\\1/p' <./project/Dependencies.scala").trim()
-              docker.build("mesosphere/marathon:${gitCommit}", "--build-arg MESOS_VERSION=${mesosVersion} .")
-           }
-        )
-      }
-      stage("6. Archive Artifacts") {
-          archiveArtifacts artifacts: 'target/**/classes/**', allowEmptyArchive: true
-          archiveArtifacts artifacts: 'target/marathon-runnable.jar', allowEmptyArchive: true
-          archiveArtifacts artifacts: "target/marathon-${gitCommit}.tgz", allowEmptyArchive: false
-          archiveArtifacts artifacts: "marathon-pkg/marathon*.deb", allowEmptyArchive: false
-          archiveArtifacts artifacts: "marathon-pkg/marathon*.rpm", allowEmptyArchive: false
-          step([
-              $class: 'S3BucketPublisher',
-              entries: [[
-                  sourceFile: "target/marathon-${gitCommit}.tgz",
-                  bucket: 'marathon-artifacts',
-                  selectedRegion: 'us-west-2',
-                  noUploadOnFailure: true,
-                  managedArtifacts: true,
-                  flatten: true,
-                  showDirectlyInBrowser: false,
-                  keepForever: true,
-              ]],
-              profileName: 'marathon-artifacts',
-              dontWaitForConcurrentBuildCompletion: false,
-              consoleLogLevel: 'INFO',
-              pluginFailureResultConstraint: 'FAILURE'
-          ])
-      }
-      // Only create latest-dev snapshot for master.
-      if( env.BRANCH_NAME == "master" ) {
-        stage("7. Publish Docker Image Snaphot") {
-          docker.image("mesosphere/marathon:${gitCommit}").tag("latest-dev")
-          docker.withRegistry("https://index.docker.io/v1/", "docker-hub-credentials") {
-            docker.image("mesosphere/marathon:latest-dev").push()
-          }
-        }
-      }
     } catch (Exception err) {
         currentBuild.result = 'FAILURE'
         if( env.BRANCH_NAME.startsWith("releases/") || env.BRANCH_NAME == "master" ) {
