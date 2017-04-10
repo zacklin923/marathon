@@ -6,6 +6,8 @@ import akka.http.scaladsl.model.headers.CustomHeader
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import mesosphere.marathon.core.deployment.DeploymentPlan
+import mesosphere.marathon.state.{ PathId, Timestamp }
+import play.api.libs.json.Json
 
 trait BaseHandler {
 
@@ -29,5 +31,13 @@ trait BaseHandler {
     override def value(): String = plan.id
     override def renderInResponses(): Boolean = true
     override def renderInRequests(): Boolean = false
+  }
+
+  case class Message(message: String)
+  object Message {
+    implicit val messageFormat = Json.format[Message]
+    def appNotFound(id: PathId, version: Option[Timestamp] = None): Message = {
+      Message(s"App '$id' does not exist" + version.fold("")(v => s" in version $v"))
+    }
   }
 }

@@ -50,18 +50,18 @@ trait ServiceMocks {
 
   lazy val appInfoService = new AppInfoService {
 
-    def info: AppInfo = AppInfo(AppDefinition(id = PathId("/foo")))
+    def info(id: PathId = PathId("/foo")): AppInfo = AppInfo(AppDefinition(id = id))
 
     override def selectAppsBy(selector: AppSelector, embed: Set[AppInfo.Embed]): Future[marathon.Seq[AppInfo]] = {
-      Future.successful(Seq(info))
+      Future.successful(Seq(info()))
     }
 
     override def selectApp(appId: PathId, selector: AppSelector, embed: Set[AppInfo.Embed]): Future[Option[AppInfo]] = {
-      Future.successful(Some(info))
+      Future.successful(Some(info(appId)))
     }
 
     override def selectAppsInGroup(groupId: PathId, selector: AppSelector, embed: Set[AppInfo.Embed]): Future[marathon.Seq[AppInfo]] = {
-      Future.successful(Seq(info))
+      Future.successful(Seq(info()))
     }
   }
 
