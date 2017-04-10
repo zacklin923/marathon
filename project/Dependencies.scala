@@ -4,11 +4,22 @@ import sbt._
 object Dependencies {
   import Dependency._
 
+  val api = Seq(
+    playJson % "compile",
+    wixAccord % "compile",
+    akkaActor % "compile",
+    akkaSlf4j % "compile",
+    akkaStream % "compile",
+    akkaHttp % "compile",
+    akkaHttpPlayJson % "compile"
+  )
+
   val pluginInterface = Seq(
     playJson % "compile",
     mesos % "compile",
     guava % "compile",
     wixAccord % "compile",
+    scalaLogging % "compile",
     scalaxml % "provided" // for scapegoat
   )
 
