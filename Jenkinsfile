@@ -32,10 +32,11 @@ node('JenkinsMarathonCI-Debian8-2017-03-21') {
       try {
         m.test()
       } finally {
-        sh "sudo mv target/scala-2.11/scoverage-report/ target/scala-2.11/scoverage-report-unit"
-        sh "sudo mv target/scala-2.11/coverage-report/cobertura.xml target/scala-2.11/coverage-report/cobertura-unit.xml"
+        sh "sudo JOB_NAME=${env.JOB_NAME} BRANCH_NAME=${env.BRANCH_NAME} BUILD_ID=${env.BUILD_ID} /usr/local/bin/amm scripts/unit_test_post_process.sc"
+        stash(name: "unit_test_coverage",
+              include: "target/scala-2.11/scoverage-report-unit/*.csv")
         archiveArtifacts(
-            artifacts: 'target/**/coverage-report/cobertura-unit.xml, target/**/scoverage-report-unit/**',
+            artifacts: 'target/**/coverage-report/cobertura-unit.*, target/**/scoverage-report-unit/**',
             allowEmptyArchive: true)
       }
     }
@@ -109,5 +110,11 @@ node('JenkinsMarathonCI-Debian8-2017-03-21') {
         , errorHandlers: [[$class: 'ShallowAnyErrorHandler']]
         , contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: "Velocity All"]
     ])
+  }
+}
+node("ammonite-0.8.2") {
+  stage("Upload") {
+    unstash(name: "unit_test_coverage")
+    sh """amm scripts/post_coverage_data.sc "http://postgrest.marathon.l4lb.thisdcos.directory/coverage_results" """
   }
 }
