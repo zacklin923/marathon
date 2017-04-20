@@ -3,18 +3,20 @@ package api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.headers.CustomHeader
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.Directives._
 import mesosphere.marathon.core.deployment.DeploymentPlan
 import mesosphere.marathon.state.{ PathId, Timestamp }
 import play.api.libs.json.Json
 
 trait BaseHandler {
-
+  type Message = BaseHandler.Message
+  val Message = BaseHandler.Message
+  val Deployment = BaseHandler.Deployment
   implicit def rejectionHandler =
     RejectionHandler.newBuilder()
       .handle(LeaderDirectives.handleNonLeader)
-      .handle(ValidationDirectives.handleNonValid)
+      .handle(EntityMarshallers.handleNonValid)
       .handle {
         case ValidationRejection(msg, _) =>
           complete((InternalServerError, "That wasn't valid! " + msg))
@@ -25,7 +27,9 @@ trait BaseHandler {
       }
       .handleNotFound { complete((NotFound, "Not here!")) }
       .result()
+}
 
+object BaseHandler {
   case class Deployment(plan: DeploymentPlan) extends CustomHeader {
     override def name(): String = "Marathon-Deployment-Id"
     override def value(): String = plan.id

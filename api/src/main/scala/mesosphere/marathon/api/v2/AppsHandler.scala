@@ -23,9 +23,10 @@ import PathId._
 import scala.concurrent.{ ExecutionContext, Future }
 
 trait AppsHandler extends BaseHandler with LeaderDirectives
-    with AuthDirectives with ValidationDirectives with PlayJson with AppConversion {
+    with AuthDirectives with AppConversion {
 
   import AppsHandler._
+  import EntityMarshallers._
 
   def clock: Clock
   def eventBus: EventStream
@@ -77,7 +78,7 @@ trait AppsHandler extends BaseHandler with LeaderDirectives
       }
     }
     authenticated { implicit identity =>
-      validEntityRaml(as[raml.App], normalizeApp, appRamlReader, validateApp) { app =>
+      entity(as[AppDefinition]) { app =>
         authorized(CreateRunSpec, app, identity) {
           parameters('force.as[Boolean].?(false)) { force =>
             onSuccess(create(app, force)) { (plan, app) =>
@@ -104,7 +105,10 @@ trait AppsHandler extends BaseHandler with LeaderDirectives
               authorized(ViewResource, info.app, identity) {
                 complete(Json.obj("app" -> info))
               }
-            case None => complete(StatusCodes.NotFound -> Message.appNotFound(appId))
+            case None =>
+              (StatusCodes.NotFound -> Message.appNotFound(appId))
+              // complete(StatusCodes.NotFound -> Message.appNotFound(appId))
+              complete("hi")
           }
         }
       }

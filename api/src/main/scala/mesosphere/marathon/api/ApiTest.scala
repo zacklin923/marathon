@@ -16,7 +16,8 @@ object Foo {
   implicit val format = Json.format[Foo]
 }
 
-trait Service extends LeaderDirectives with AuthDirectives with PlayJson {
+trait Service extends LeaderDirectives with AuthDirectives {
+  import EntityMarshallers._
 
   val routes: Route = {
     asLeader {
