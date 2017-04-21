@@ -170,7 +170,7 @@ def report_success() {
     }
     step([$class: 'GitHubCommitStatusSetter'
         , errorHandlers: [[$class: 'ShallowAnyErrorHandler']]
-        , contextSource: [$class: 'ManuallyEnteredCommitContextSource'
+        , contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: "Velocity All"]
         , statusResultSource: [
             $class: 'ConditionalStatusResultSource'
             , results: [
@@ -179,7 +179,6 @@ def report_success() {
                 [$class: 'AnyBuildResult', state: 'FAILURE', message: 'Loophole']
             ]
         ]
-        ,context: "Velocity All"]
     ])
   }
 }
