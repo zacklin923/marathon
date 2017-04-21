@@ -160,7 +160,7 @@ def report_success() {
     }
   } else {
     if (is_master_or_release()) {
-      if (previousBuildFailed() && currentBuild.result == 'SUCCESS') {
+      if (previousBuildFailed()) {
         slackSend(
             message: "\u2714 ̑̑branch `${env.BRANCH_NAME}` is green again. (<${env.BUILD_URL}|Open>)",
             color: "good",
@@ -170,7 +170,16 @@ def report_success() {
     }
     step([$class: 'GitHubCommitStatusSetter'
         , errorHandlers: [[$class: 'ShallowAnyErrorHandler']]
-        , contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: "Velocity All"]
+        , contextSource: [$class: 'ManuallyEnteredCommitContextSource'
+        , statusResultSource: [
+            $class: 'ConditionalStatusResultSource'
+            , results: [
+                [$class: 'BetterThanOrEqualBuildResult', result: 'UNSTABLE', state: 'SUCCESS', message: build.description],
+                [$class: 'BetterThanOrEqualBuildResult', result: 'FAILURE', state: 'FAILURE', message: build.description],
+                [$class: 'AnyBuildResult', state: 'FAILURE', message: 'Loophole']
+            ]
+        ]
+        ,context: "Velocity All"]
     ])
   }
 }
