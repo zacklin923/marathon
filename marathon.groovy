@@ -174,8 +174,8 @@ def report_success() {
         , statusResultSource: [
             $class: 'ConditionalStatusResultSource'
             , results: [
-                [$class: 'BetterThanOrEqualBuildResult', result: 'UNSTABLE', state: 'SUCCESS', message: build.description],
-                [$class: 'BetterThanOrEqualBuildResult', result: 'FAILURE', state: 'FAILURE', message: build.description],
+                [$class: 'BetterThanOrEqualBuildResult', result: 'UNSTABLE', state: 'SUCCESS', message: currentBuild.description],
+                [$class: 'BetterThanOrEqualBuildResult', result: 'FAILURE', state: 'FAILURE', message: currentBuild.description],
                 [$class: 'AnyBuildResult', state: 'FAILURE', message: 'Loophole']
             ]
         ]
